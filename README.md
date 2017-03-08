@@ -18,5 +18,4 @@ sbt run
 **purpose of this project**
 - show a scala sample of using geoSpark
 - get input how to create a more scala native `CustomInputMapperWKT`
-- help me fix the input parsing of WKT with custom additional field
 - help me to resolve all the TODOS

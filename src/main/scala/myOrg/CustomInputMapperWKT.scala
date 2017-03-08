@@ -46,6 +46,7 @@ class CustomInputMapperWKT extends FlatMapFunction[String, Polygon] {
           case p: Polygon => {
             // with single element
             val result: collection.Seq[Polygon] with Growable[Polygon] = mutable.Buffer[Polygon]()
+            p.setUserData(lineString.tail)
             result += p
             // TODO replace lines above with smaller code as only single element is used. However, I tried the following
             // which did not work due to not inferred types
