@@ -2,14 +2,19 @@
 
 package myOrg
 
+import java.awt.Color
 import java.io.File
 
+import com.vividsolutions.jts.geom.Envelope
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.storage.StorageLevel
-import org.datasyslab.geospark.enums.{ FileDataSplitter, GridType, IndexType }
+import org.datasyslab.babylon.extension.imageGenerator.NativeJavaImageGenerator
+import org.datasyslab.babylon.extension.visualizationEffect.ScatterPlot
+import org.datasyslab.babylon.utils.ImageType
+import org.datasyslab.geospark.enums.{FileDataSplitter, GridType, IndexType}
 import org.datasyslab.geospark.spatialOperator.JoinQuery
-import org.datasyslab.geospark.spatialRDD.{ PolygonRDD, RectangleRDD }
+import org.datasyslab.geospark.spatialRDD.PolygonRDD
 
 object GeoSpark extends App {
 
@@ -61,13 +66,38 @@ object GeoSpark extends App {
   /*
    * true means use spatial index.
    */
-  //  println(s"count result size ${joinResult.count}")
+  println(s"count result size ${joinResult.count}")
 
   // TODO convert to dataframe
   //  joinResult.rawSpatialRDD.toDF().show
   //  joinResult.rawSpatialRDD.rdd.toDS().showhttps://github.com/DataSystemsLab/GeoSpark/tree/2adce0c1c13af172f9be6c3cd0cda1431c74d0b8/src/main/java/org/datasyslab/geospark/showcase
 
   //  TODO visualize result on a map via babylon
+  buildScatterPlot("image01.png", objectRDD)
+  buildScatterPlot("image02.png", minimalPolygonCustom)
+  // TODO how to visualize result?
+  //  buildScatterPlot("image03.png", joinResult)
+
+  /**
+    * Builds the scatter plot.
+    *
+    * @param outputPath the output path
+    * @return true, if successful
+    */
+  // https://github.com/DataSystemsLab/GeoSpark/blob/master/src/main/java/org/datasyslab/babylon/showcase/Example.java
+  def buildScatterPlot(outputPath: String, spatialRDD: PolygonRDD): Unit = {
+    val envelope = new Envelope(0, 0, 90, 90)
+    try {
+      val visualizationOperator = new ScatterPlot(1000, 600, envelope, false)
+      visualizationOperator.CustomizeColor(255, 255, 255, 255, Color.GREEN, true)
+      visualizationOperator.Visualize(spark.sparkContext, spatialRDD)
+      val imageGenerator = new NativeJavaImageGenerator()
+      imageGenerator.SaveAsFile(visualizationOperator.pixelImage, outputPath, ImageType.PNG)
+    }
+    catch {
+      case e: Exception => e.printStackTrace()
+    }
+  }
 
   spark.stop
 }
