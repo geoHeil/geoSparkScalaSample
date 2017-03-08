@@ -8,6 +8,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.storage.StorageLevel
 import org.datasyslab.geospark.enums.{ FileDataSplitter, GridType, IndexType }
+import org.datasyslab.geospark.spatialOperator.JoinQuery
 import org.datasyslab.geospark.spatialRDD.{ PolygonRDD, RectangleRDD }
 
 object GeoSpark extends App {
@@ -29,10 +30,10 @@ object GeoSpark extends App {
   //    + "resources" + File.separator
   //    + "arealm.csv", 0, FileDataSplitter.CSV, false, StorageLevel.MEMORY_ONLY)
 
-  val objectRDD = new RectangleRDD(spark.sparkContext, "src" + File.separator
+  val objectRDD = new PolygonRDD(spark.sparkContext, "src" + File.separator
     + "main" + File.separator
     + "resources" + File.separator
-    + "zcta510.csv", 0, FileDataSplitter.CSV, false, StorageLevel.MEMORY_ONLY)
+    + "zcta510-polygon.csv", FileDataSplitter.CSV, false, StorageLevel.MEMORY_ONLY)
 
   val minimalPolygonCustom = new PolygonRDD(spark.sparkContext, "src"
     + File.separator + "main"
@@ -56,7 +57,7 @@ object GeoSpark extends App {
    * Use the partition boundary of objectRDD to repartition the query window RDD, This is mandatory.
    */
   // TODO make the join work here. I want to join my pologons with some sample points or boxes
-  //  val joinResult = JoinQuery.SpatialJoinQuery(objectRDD, minimalPolygonCustom, true)
+  val joinResult = JoinQuery.SpatialJoinQuery(objectRDD, minimalPolygonCustom, true)
   /*
    * true means use spatial index.
    */
