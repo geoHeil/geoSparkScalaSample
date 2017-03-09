@@ -75,8 +75,12 @@ object GeoSpark extends App {
   //  joinResult.rawSpatialRDD.rdd.toDS().showhttps://github.com/DataSystemsLab/GeoSpark/tree/2adce0c1c13af172f9be6c3cd0cda1431c74d0b8/src/main/java/org/datasyslab/geospark/showcase
 
   //  TODO visualize result on a map via babylon
-  buildScatterPlot("/home/geoheil/Downloads/hereImage01", objectRDD)
-  buildScatterPlot("~/Downloads/hereImage02", minimalPolygonCustom)
+  val homeDir = System.getProperty("user.home");
+  var path = homeDir + File.separator
+  path = path.replaceFirst("^~", System.getProperty("user.home"))
+
+  buildScatterPlot(path + "hereImage01", objectRDD)
+  buildScatterPlot(path + "hereImage02", minimalPolygonCustom)
   // TODO how to visualize result?
   //  buildScatterPlot("image03.png", joinResult)
 
