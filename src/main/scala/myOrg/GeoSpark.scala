@@ -67,12 +67,10 @@ object GeoSpark extends App {
    */
   println(s"count result size ${joinResult.count}")
 
-  // TODO convert to dataframe
-  //  joinResult.toDF().show
-  //  joinResult.rawSpatialRDD.toDF().show
-  //  joinResult.rawSpatialRDD.rdd.toDS().showhttps://github.com/DataSystemsLab/GeoSpark/tree/2adce0c1c13af172f9be6c3cd0cda1431c74d0b8/src/main/java/org/datasyslab/geospark/showcase
+  // TODO figure out encoder http://stackoverflow.com/questions/36648128/how-to-store-custom-objects-in-a-dataset
+  //  joinResult.rdd.toDF.show // Fails with no encoder found
+  //  joinResult.rdd.toDS.show // Fails with no encoder found
 
-  //  TODO visualize result on a map via babylon
   val homeDir = System.getProperty("user.home");
   var path = homeDir + File.separator
   path = path.replaceFirst("^~", System.getProperty("user.home"))
