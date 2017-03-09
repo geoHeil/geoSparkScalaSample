@@ -13,9 +13,9 @@ We will load Data from two files (Boxes and Polyons) and perform a geospatial jo
 git clone https://github.com/geoHeil/geoSparkScalaSample.git
 cd geoSparkScalaSample
 sbt run
+sbt test
 ```
 
 **purpose of this project**
 - show a scala sample of using geoSpark
-- get input how to create a more scala native `CustomInputMapperWKT`
 - help me to resolve all the TODOS

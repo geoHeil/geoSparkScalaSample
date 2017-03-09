@@ -68,7 +68,27 @@ object GeoSpark extends App {
   println(s"count result size ${joinResult.count}")
 
   // TODO figure out encoder http://stackoverflow.com/questions/36648128/how-to-store-custom-objects-in-a-dataset
-  //  joinResult.rdd.toDF.show // Fails with no encoder found
+  // or pass plain values i.e int string and no objects?
+  // or simply use RDD API but spark SQL would be nice. Especially if result is exported to other services like hive
+  //  import spark.implicits._
+  import scala.reflect.ClassTag
+
+  implicit def kryoEncoder[A](implicit ct: ClassTag[A]) =
+    org.apache.spark.sql.Encoders.kryo[A](ct)
+
+  val fe = joinResult.rdd.first
+  val feKey = fe._1
+  val feValue = fe._2
+  println(fe)
+  println(feKey)
+  println(feKey.getUserData)
+  println(feValue)
+  //  println(joinResult.rdd.first)
+  //  implicit val polygonEncoder = org.apache.spark.sql.Encoders.kryo[com.vividsolutions.jts.geom.Polygon]
+  //  val df = joinResult.rdd.toDF // only works with spark.implicits, which cant be imported to make kryo work
+  val df = spark.createDataset(joinResult)
+  df.show // Fails with no encoder found
+  df.printSchema
   //  joinResult.rdd.toDS.show // Fails with no encoder found
 
   val homeDir = System.getProperty("user.home");
