@@ -5,14 +5,13 @@ package myOrg
 import java.awt.Color
 import java.io.File
 
-import com.vividsolutions.jts.geom.Envelope
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.storage.StorageLevel
 import org.datasyslab.babylon.extension.imageGenerator.NativeJavaImageGenerator
 import org.datasyslab.babylon.extension.visualizationEffect.ScatterPlot
 import org.datasyslab.babylon.utils.ImageType
-import org.datasyslab.geospark.enums.{ FileDataSplitter, GridType, IndexType }
+import org.datasyslab.geospark.enums.{FileDataSplitter, GridType, IndexType}
 import org.datasyslab.geospark.spatialOperator.JoinQuery
 import org.datasyslab.geospark.spatialRDD.PolygonRDD
 
@@ -62,7 +61,6 @@ object GeoSpark extends App {
   /*
    * Use the partition boundary of objectRDD to repartition the query window RDD, This is mandatory.
    */
-  // TODO make the join work here. I want to join my pologons with some sample points or boxes
   val joinResult = JoinQuery.SpatialJoinQuery(objectRDD, minimalPolygonCustom, true)
   /*
    * true means use spatial index.
@@ -85,11 +83,11 @@ object GeoSpark extends App {
   //  buildScatterPlot("image03.png", joinResult)
 
   /**
-   * Builds the scatter plot.
-   *
-   * @param outputPath the output path
-   * @return true, if successful
-   */
+    * Builds the scatter plot.
+    *
+    * @param outputPath the output path
+    * @return true, if successful
+    */
   // https://github.com/DataSystemsLab/GeoSpark/blob/master/src/main/java/org/datasyslab/babylon/showcase/Example.java
   def buildScatterPlot(outputPath: String, spatialRDD: PolygonRDD): Unit = {
     val envelope = spatialRDD.boundaryEnvelope
