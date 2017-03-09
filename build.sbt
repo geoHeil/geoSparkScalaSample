@@ -30,7 +30,9 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % spark % "provided",
   "org.apache.spark" %% "spark-sql" % spark % "provided",
   "org.apache.spark" %% "spark-hive" % spark % "provided",
-  "org.datasyslab" % "geospark" % "0.5.2"
+  "org.datasyslab" % "geospark" % "0.5.2",
+  "com.holdenkarau" % "spark-testing-base_2.11" % s"${spark}_0.6.0"
+
 )
 
 run in Compile <<= Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))

@@ -36,13 +36,16 @@ class CustomInputMapperWKT extends FlatMapFunction[String, Polygon] {
               intermediateGeoObjectPolygon.setUserData(lineString.tail)
               // TODO figure out if this is still correct for MULTIPOLYGONs user data
               // will probably be required to be loaded separately for each polygon
-              logger.warn("using multy polygon, probably with wrong user data section")
+              logger.warn(s"using multy polygon, probably with wrong user data section of ${lineString.tail}")
               result.add(intermediateGeoObjectPolygon)
               i += 1
             }
             result.iterator
           }
           case p: Polygon => {
+            logger.warn(lineString.head)
+            logger.warn(lineString.tail)
+            logger.warn(s"using user data of ${lineString.tail}")
             p.setUserData(lineString.tail)
             Collections.singleton(p).iterator
           }
