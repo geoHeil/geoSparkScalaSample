@@ -19,7 +19,7 @@ import org.datasyslab.geospark.spatialRDD.PolygonRDD
 object GeoSpark extends App {
 
   val conf: SparkConf = new SparkConf()
-    .setAppName("geomesaSparkInMemory")
+    .setAppName("geoSparkMemory")
     .setMaster("local[*]")
     .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
 
@@ -35,29 +35,30 @@ object GeoSpark extends App {
   //    + "resources" + File.separator
   //    + "arealm.csv", 0, FileDataSplitter.CSV, false, StorageLevel.MEMORY_ONLY)
 
+  //  TODO load data from different files int oa single big RDD
   val objectRDD = new PolygonRDD(spark.sparkContext, "src" + File.separator
     + "main" + File.separator
     + "resources" + File.separator
-    + "zcta510-polygon.csv", FileDataSplitter.CSV, false, StorageLevel.MEMORY_ONLY)
+    + "zcta510-small.csv", FileDataSplitter.CSV, false, StorageLevel.MEMORY_ONLY)
 
   val minimalPolygonCustom = new PolygonRDD(spark.sparkContext, "src"
     + File.separator + "main"
     + File.separator + "resources"
     + File.separator + "minimal01.csv", new CustomInputMapperWKT(), StorageLevel.MEMORY_ONLY)
 
-  objectRDD.spatialPartitioning(GridType.RTREE);
+  objectRDD.spatialPartitioning(GridType.RTREE)
   //   TODO try out different types of indices, try out different sides (left, right) of the join and try broadcast join
   /*
    * GridType.RTREE means use R-Tree spatial partitioning technique. It will take the leaf node boundaries as parition boundary.
    * We support R-Tree partitioning and Voronoi diagram partitioning.
    */
   // TODO try out different combinations of indices
-  objectRDD.buildIndex(IndexType.RTREE, true);
+  objectRDD.buildIndex(IndexType.RTREE, true)
   /*
    * IndexType.RTREE enum means the index type is R-tree. We support R-Tree index and Quad-Tree index. But Quad-Tree doesn't support KNN.
    * True means build index on the spatial partitioned RDD. ONLY set true when doing Spatial Join Query.
    */
-  minimalPolygonCustom.spatialPartitioning(objectRDD.grids);
+  minimalPolygonCustom.spatialPartitioning(objectRDD.grids)
   /*
    * Use the partition boundary of objectRDD to repartition the query window RDD, This is mandatory.
    */
@@ -74,7 +75,7 @@ object GeoSpark extends App {
 
   //  TODO visualize result on a map via babylon
   buildScatterPlot("image01.png", objectRDD)
-  buildScatterPlot("image02.png", minimalPolygonCustom)
+  //  buildScatterPlot("image02.png", minimalPolygonCustom)
   // TODO how to visualize result?
   //  buildScatterPlot("image03.png", joinResult)
 
@@ -86,7 +87,7 @@ object GeoSpark extends App {
    */
   // https://github.com/DataSystemsLab/GeoSpark/blob/master/src/main/java/org/datasyslab/babylon/showcase/Example.java
   def buildScatterPlot(outputPath: String, spatialRDD: PolygonRDD): Unit = {
-    val envelope = new Envelope(0, 0, 90, 90)
+    val envelope = new Envelope(-126.790180, -64.630926, 24.863836, 50.000);
     try {
       val visualizationOperator = new ScatterPlot(1000, 600, envelope, false)
       visualizationOperator.CustomizeColor(255, 255, 255, 255, Color.GREEN, true)
