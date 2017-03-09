@@ -11,7 +11,7 @@ import org.apache.spark.storage.StorageLevel
 import org.datasyslab.babylon.extension.imageGenerator.NativeJavaImageGenerator
 import org.datasyslab.babylon.extension.visualizationEffect.ScatterPlot
 import org.datasyslab.babylon.utils.ImageType
-import org.datasyslab.geospark.enums.{FileDataSplitter, GridType, IndexType}
+import org.datasyslab.geospark.enums.{ FileDataSplitter, GridType, IndexType }
 import org.datasyslab.geospark.spatialOperator.JoinQuery
 import org.datasyslab.geospark.spatialRDD.PolygonRDD
 
@@ -83,11 +83,11 @@ object GeoSpark extends App {
   //  buildScatterPlot("image03.png", joinResult)
 
   /**
-    * Builds the scatter plot.
-    *
-    * @param outputPath the output path
-    * @return true, if successful
-    */
+   * Builds the scatter plot.
+   *
+   * @param outputPath the output path
+   * @return true, if successful
+   */
   // https://github.com/DataSystemsLab/GeoSpark/blob/master/src/main/java/org/datasyslab/babylon/showcase/Example.java
   def buildScatterPlot(outputPath: String, spatialRDD: PolygonRDD): Unit = {
     val envelope = spatialRDD.boundaryEnvelope

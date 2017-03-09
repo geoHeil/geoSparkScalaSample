@@ -1,6 +1,7 @@
 // Copyright (C) 2017 Georg Heiler
 package myOrg
 
+import java.util
 import java.util.Collections
 
 import com.vividsolutions.jts.geom.{ MultiPolygon, Polygon }
@@ -8,9 +9,6 @@ import com.vividsolutions.jts.io.WKTReader
 import org.apache.log4j.Logger
 import org.apache.spark.api.java.function.FlatMapFunction
 import org.json4s.ParserUtil.ParseException
-
-import scala.collection.generic.Growable
-import scala.collection.mutable
 
 class CustomInputMapperWKT extends FlatMapFunction[String, Polygon] {
 
@@ -21,43 +19,29 @@ class CustomInputMapperWKT extends FlatMapFunction[String, Polygon] {
     val lines = line.split(";")
     if (lines.head.startsWith("WKT")) {
       // skipping the header and returning empty iterator
-      logger.warn(s"skipping lines ${lines.head}")
+      logger.debug(s"skipping lines ${lines.head}")
       Collections.emptyIterator()
     } else {
-      logger.warn(s"full lines ${line}")
+      logger.debug(s"full lines ${line}")
       val lineString = lines.head
-      logger.warn(lineString)
+      logger.debug(lineString)
       try {
-        val geoObject = new WKTReader().read(lineString)
-        geoObject match {
+        new WKTReader().read(lineString) match {
           case m: MultiPolygon => {
-            // TODO find a more scala native way for tis loop maybe a fold? or for ... yield?
-            val result: collection.Seq[Polygon] with Growable[Polygon] = mutable.Buffer[Polygon]()
+            // as a java iterator must be returned it will be best to start using java collections from the start
+            val result = new util.ArrayList[Polygon](m.getNumGeometries)
             var i = 0
             while (i < m.getNumGeometries) {
               val intermediateGeoObjectPolygon = m.getGeometryN(i).asInstanceOf[Polygon]
-              intermediateGeoObjectPolygon.setUserData(lineString.tail) // TODO figure out if this is still correct for MULTIPLOYGONs
-              result += intermediateGeoObjectPolygon
+              intermediateGeoObjectPolygon.setUserData(lineString.tail)
+              // TODO figure out if this is still correct for MULTIPOLYGONs user data
+              // will probably be required to be loaded separately for each polygon
+              result.add(intermediateGeoObjectPolygon)
               i += 1
             }
-            //TODO get implicit scala to java conversion to work
-            scala.collection.JavaConversions.seqAsJavaList(result).iterator()
+            result.iterator
           }
-          case p: Polygon => {
-            // with single element
-            val result: collection.Seq[Polygon] with Growable[Polygon] = mutable.Buffer[Polygon]()
-            p.setUserData(lineString.tail)
-            result += p
-            // TODO replace lines above with smaller code as only single element is used. However, I tried the following
-            // which did not work due to not inferred types
-            //            scala.collection.JavaConversions.seqAsJavaList(p).iterator()
-            // TODO get automatic implicit Seq(p).iterator.asJava to work - import of scala collection implict java conversion did not work
-            scala.collection.JavaConversions.seqAsJavaList(result).iterator()
-          }
-          case _ => {
-            logger.error(s"No geometry") //TODO proper logging better error handling
-            Collections.emptyIterator()
-          }
+          case p: Polygon => Collections.singleton(p).iterator
         }
       } catch {
         case e: ParseException => {
