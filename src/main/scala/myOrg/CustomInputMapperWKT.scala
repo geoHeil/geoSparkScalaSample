@@ -41,7 +41,10 @@ class CustomInputMapperWKT extends FlatMapFunction[String, Polygon] {
             }
             result.iterator
           }
-          case p: Polygon => Collections.singleton(p).iterator
+          case p: Polygon => {
+            p.setUserData(lineString.tail)
+            Collections.singleton(p).iterator
+          }
         }
       } catch {
         case e: ParseException => {
