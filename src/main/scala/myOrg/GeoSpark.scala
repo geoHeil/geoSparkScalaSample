@@ -70,12 +70,13 @@ object GeoSpark extends App {
   println(s"count result size ${joinResult.count}")
 
   // TODO convert to dataframe
+  //  joinResult.toDF().show
   //  joinResult.rawSpatialRDD.toDF().show
   //  joinResult.rawSpatialRDD.rdd.toDS().showhttps://github.com/DataSystemsLab/GeoSpark/tree/2adce0c1c13af172f9be6c3cd0cda1431c74d0b8/src/main/java/org/datasyslab/geospark/showcase
 
   //  TODO visualize result on a map via babylon
-  buildScatterPlot("image01.png", objectRDD)
-  //  buildScatterPlot("image02.png", minimalPolygonCustom)
+  buildScatterPlot("/home/geoheil/Downloads/hereImage01", objectRDD)
+  buildScatterPlot("~/Downloads/hereImage02", minimalPolygonCustom)
   // TODO how to visualize result?
   //  buildScatterPlot("image03.png", joinResult)
 
