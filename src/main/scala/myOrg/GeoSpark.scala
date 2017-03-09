@@ -87,7 +87,7 @@ object GeoSpark extends App {
    */
   // https://github.com/DataSystemsLab/GeoSpark/blob/master/src/main/java/org/datasyslab/babylon/showcase/Example.java
   def buildScatterPlot(outputPath: String, spatialRDD: PolygonRDD): Unit = {
-    val envelope = new Envelope(-126.790180, -64.630926, 24.863836, 50.000);
+    val envelope = spatialRDD.boundaryEnvelope
     try {
       val visualizationOperator = new ScatterPlot(1000, 600, envelope, false)
       visualizationOperator.CustomizeColor(255, 255, 255, 255, Color.GREEN, true)
