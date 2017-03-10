@@ -31,7 +31,8 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-sql" % spark % "provided",
   "org.apache.spark" %% "spark-hive" % spark % "provided",
   "org.datasyslab" % "geospark" % "0.5.2",
-  "com.holdenkarau" % "spark-testing-base_2.11" % s"${spark}_0.6.0"
+  "com.holdenkarau" % "spark-testing-base_2.11" % s"${spark}_0.6.0" % "test",
+  "org.wololo" % "jts2geojson" % "0.10.0" % "provided" // only here for obtaining polygons source
 
 )
 
