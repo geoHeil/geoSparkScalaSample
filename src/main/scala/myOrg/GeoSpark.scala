@@ -10,7 +10,7 @@ import com.vividsolutions.jts.io.{WKTReader, WKTWriter}
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaPairRDD
-import org.apache.spark.sql.{Dataset, SparkSession}
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.storage.StorageLevel
 import org.datasyslab.babylon.core.OverlayOperator
 import org.datasyslab.babylon.extension.imageGenerator.NativeJavaImageGenerator
@@ -19,7 +19,6 @@ import org.datasyslab.babylon.utils.ImageType
 import org.datasyslab.geospark.enums.{FileDataSplitter, GridType, IndexType}
 import org.datasyslab.geospark.spatialOperator.JoinQuery
 import org.datasyslab.geospark.spatialRDD.PolygonRDD
-import org.json4s.ParserUtil.ParseException
 
 case class WKTGeometryWithPayload(lineString: String, payload: Int)
 
