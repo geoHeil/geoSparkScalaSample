@@ -19,3 +19,6 @@ sbt test
 **purpose of this project**
 - show a scala sample of using geoSpark
 - help me to resolve all the TODOS
+
+## TODOs
+- consider https://github.com/jongwook/cuesheet-starter-kit with https://github.com/kakao/cuesheet

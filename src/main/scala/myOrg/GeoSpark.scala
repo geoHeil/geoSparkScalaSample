@@ -5,7 +5,7 @@ package myOrg
 import java.awt.Color
 import java.io.File
 
-import com.vividsolutions.jts.geom.{Envelope, Polygon}
+import com.vividsolutions.jts.geom.Polygon
 import com.vividsolutions.jts.io.WKTWriter
 import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaPairRDD
@@ -19,8 +19,7 @@ import org.datasyslab.geospark.enums.{FileDataSplitter, GridType, IndexType}
 import org.datasyslab.geospark.spatialOperator.JoinQuery
 import org.datasyslab.geospark.spatialRDD.PolygonRDD
 
-import scala.collection.immutable.HashSet.HashSet1
-
+case class WKTGeometryWithPayload(lineString: String, payload: Int)
 object GeoSpark extends App {
 
   val conf: SparkConf = new SparkConf()
@@ -48,16 +47,24 @@ object GeoSpark extends App {
     + "resources" + File.separator
     + "zcta510-small.csv", FileDataSplitter.CSV, false, StorageLevel.MEMORY_ONLY)
 
-  // try to get a data frame out of it, map to linestring and user data
-  //  val firstPoly = objectRDD.getRawSpatialRDD.first.asInstanceOf[Polygon]
-  //  val writer = new WKTWriter()
-  //  objectRDD.getRawSpatialRDD.map((writer.write(_),_.getUserData))
-  //  writer.write(firstPoly)
-
   val minimalPolygonCustom = new PolygonRDD(spark.sparkContext, "src"
     + File.separator + "main"
     + File.separator + "resources"
     + File.separator + "minimal01.csv", new CustomInputMapperWKT(), StorageLevel.MEMORY_ONLY)
+
+  def writeSerializableWKT(iterator: Iterator[AnyRef]): Iterator[WKTGeometryWithPayload] ={
+    val writer = new WKTWriter()
+    iterator.flatMap(cur => {
+      val cPoly = cur.asInstanceOf[Polygon]
+      // TODO is it efficient to create this collection? Is this a proper iterator 2 iterator transformation?
+      List(WKTGeometryWithPayload(writer.write(cPoly), cPoly.getUserData.asInstanceOf[Int])).iterator
+    })
+  }
+  //preservesPartitioning = true // TODO check if this is actually true, but as we do not tamper with keys should work
+  // TODO AnyRef is suboptimal. Is there any way to actually know that Geometry was in there beforehand?
+  // http://stackoverflow.com/questions/21185092/apache-spark-map-vs-mappartitions
+  import spark.implicits._
+  minimalPolygonCustom.rawSpatialRDD.rdd.mapPartitions(writeSerializableWKT).toDS.show
 
   objectRDD.spatialPartitioning(GridType.RTREE)
   //   TODO try out different types of indices, try out different sides (left, right) of the join and try broadcast join
@@ -130,11 +137,11 @@ object GeoSpark extends App {
   //  buildChoroplethMap(path + "joinVisualization", joinResultCounted, objectRDD)
 
   /**
-    * Builds the scatter plot.
-    *
-    * @param outputPath the output path
-    * @return true, if successful
-    */
+   * Builds the scatter plot.
+   *
+   * @param outputPath the output path
+   * @return true, if successful
+   */
   // https://github.com/DataSystemsLab/GeoSpark/blob/master/src/main/java/org/datasyslab/babylon/showcase/Example.java
   def buildScatterPlot(outputPath: String, spatialRDD: PolygonRDD): Unit = {
     val envelope = spatialRDD.boundaryEnvelope
@@ -150,11 +157,11 @@ object GeoSpark extends App {
   }
 
   /**
-    * Builds the heat map.
-    *
-    * @param outputPath the output path
-    * @return true, if successful
-    */
+   * Builds the heat map.
+   *
+   * @param outputPath the output path
+   * @return true, if successful
+   */
   def buildHeatMap(outputPath: String, spatialRDD: PolygonRDD): Boolean = {
     try {
       val visualizationOperator = new HeatMap(1000, 600, spatialRDD.boundaryEnvelope, false, 2)
@@ -168,11 +175,11 @@ object GeoSpark extends App {
   }
 
   /**
-    * Builds the choropleth map.
-    *
-    * @param outputPath the output path
-    * @return true, if successful
-    */
+   * Builds the choropleth map.
+   *
+   * @param outputPath the output path
+   * @return true, if successful
+   */
   def buildChoroplethMap(outputPath: String, joinResult: JavaPairRDD[Polygon, java.lang.Long], objectRDD: PolygonRDD): Boolean = {
     try {
       val visualizationOperator = new ChoroplethMap(1000, 600, objectRDD.boundaryEnvelope, false)
@@ -195,12 +202,12 @@ object GeoSpark extends App {
   }
 
   /**
-    * Parallel filter render stitch.
-    *
-    * @param outputPath the output path
-    * @return true
-    *         , if successful
-    */
+   * Parallel filter render stitch.
+   *
+   * @param outputPath the output path
+   * @return true
+   *         , if successful
+   */
   def parallelFilterRenderStitch(outputPath: String, spatialRDD: PolygonRDD): Boolean = {
     try {
       val visualizationOperator = new HeatMap(1000, 600, spatialRDD.boundaryEnvelope, false, 2, 4, 4, true, true)
