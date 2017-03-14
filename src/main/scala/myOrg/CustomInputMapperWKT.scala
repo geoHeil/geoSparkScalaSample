@@ -13,6 +13,7 @@ import org.json4s.ParserUtil.ParseException
 class CustomInputMapperWKT extends FlatMapFunction[String, Polygon] {
 
   @transient lazy val logger: Logger = Logger.getLogger(this.getClass)
+  @transient lazy val reader = new WKTReader()
 
   // based on https://github.com/DataSystemsLab/GeoSpark/blob/master/src/main/java/org/datasyslab/geospark/showcase/UserSuppliedPolygonMapper.java#L34
   override def call(line: String): java.util.Iterator[Polygon] = {

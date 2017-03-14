@@ -6,19 +6,21 @@ import java.awt.Color
 import java.io.File
 
 import com.vividsolutions.jts.geom.Polygon
-import com.vividsolutions.jts.io.{WKTReader, WKTWriter}
+import com.vividsolutions.jts.io.{ WKTReader, WKTWriter }
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaPairRDD
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{ Dataset, SparkSession }
 import org.apache.spark.storage.StorageLevel
 import org.datasyslab.babylon.core.OverlayOperator
 import org.datasyslab.babylon.extension.imageGenerator.NativeJavaImageGenerator
-import org.datasyslab.babylon.extension.visualizationEffect.{ChoroplethMap, HeatMap, ScatterPlot}
+import org.datasyslab.babylon.extension.visualizationEffect.{ ChoroplethMap, HeatMap, ScatterPlot }
 import org.datasyslab.babylon.utils.ImageType
-import org.datasyslab.geospark.enums.{FileDataSplitter, GridType, IndexType}
+import org.datasyslab.geospark.enums.{ FileDataSplitter, GridType, IndexType }
 import org.datasyslab.geospark.spatialOperator.JoinQuery
 import org.datasyslab.geospark.spatialRDD.PolygonRDD
+import org.json4s.ParserUtil.ParseException
 
 case class WKTGeometryWithPayload(lineString: String, payload: Int)
 
@@ -52,12 +54,6 @@ object GeoSpark extends App {
     + File.separator + "main"
     + File.separator + "resources"
     + File.separator + "minimal01.csv", new CustomInputMapperWKT(), StorageLevel.MEMORY_ONLY)
-  /*
-   * Use the partition boundary of objectRDD to repartition the query window RDD, This is mandatory.
-   */
-  val joinResult = JoinQuery.SpatialJoinQuery(objectRDD, minimalPolygonCustom, true)
-  //  joinResult.map()
-  val joinResultCounted = JoinQuery.SpatialJoinQueryCountByKey(objectRDD, minimalPolygonCustom, true)
 
   //preservesPartitioning = true // TODO check if this is actually true, but as we do not tamper with keys should work
   // TODO AnyRef is suboptimal. Is there any way to actually know that Geometry was in there beforehand?
@@ -79,77 +75,32 @@ object GeoSpark extends App {
    * True means build index on the spatial partitioned RDD. ONLY set true when doing Spatial Join Query.
    */
   minimalPolygonCustom.spatialPartitioning(objectRDD.grids)
-  val fe = joinResult.rdd.first
-  val feKey = fe._1
+
+  /*
+   * Use the partition boundary of objectRDD to repartition the query window RDD, This is mandatory.
+   */
+  val joinResult = JoinQuery.SpatialJoinQuery(objectRDD, minimalPolygonCustom, true)
+  //  joinResult.map()
+  val joinResultCounted = JoinQuery.SpatialJoinQueryCountByKey(objectRDD, minimalPolygonCustom, true)
+
   /*
    * true means use spatial index.
    */
   println(s"count result size ${joinResult.count}")
 
-  // TODO figure out encoder http://stackoverflow.com/questions/36648128/how-to-store-custom-objects-in-a-dataset
-  // or pass plain values i.e int string and no objects?
-  // or simply use RDD API but spark SQL would be nice. Especially if result is exported to other services like hive
-  //  import spark.implicits._
-  import scala.reflect.ClassTag
+  // demonstrate Ds - RDD - Ds back and fourth to integrate Hive and Spark and geoJoins
+  val geoHiveDs = minimalPolygonCustom.rawSpatialRDD.rdd.mapPartitions(writeSerializableWKT).toDS
+  val geoObjects = createSpatialRDDFromLinestringDataSet(geoHiveDs)
+  val polygonRDDHive = new PolygonRDD(geoObjects, StorageLevel.MEMORY_ONLY)
+  polygonRDDHive.rawSpatialRDD.rdd.mapPartitions(writeSerializableWKT).toDS.show
 
-  implicit def kryoEncoder[A](implicit ct: ClassTag[A]) =
-    org.apache.spark.sql.Encoders.kryo[A](ct)
+  // TODO show how to use this for pairRDD as well
+  val fe = joinResult.rdd.first
+  val feKey = fe._1
 
-  val feValue = fe._2
-  //  println(joinResult.rdd.first)
-  //  implicit val polygonEncoder = org.apache.spark.sql.Encoders.kryo[com.vividsolutions.jts.geom.Polygon]
-  //  val df = joinResult.rdd.toDF // only works with spark.implicits, which cant be imported to make kryo work
-  val df = spark.createDataset(joinResult)
-  val dfCount = spark.createDataset(joinResultCounted)
-  println(fe)
-  println(feKey.getExteriorRing)
-  println(feKey.getUserData)
-  println(feValue)
-  val homeDir = System.getProperty("user.home");
+  // visualization
+  val homeDir = System.getProperty("user.home")
   var path = homeDir + File.separator
-  df.show // Fails with no encoder found
-  df.printSchema
-  dfCount.show
-  dfCount.printSchema
-  //  joinResult.rdd.toDS.show // Fails with no encoder found
-
-  def writeSerializableWKT(iterator: Iterator[AnyRef]): Iterator[WKTGeometryWithPayload] = {
-    val writer = new WKTWriter()
-    iterator.flatMap(cur => {
-      val cPoly = cur.asInstanceOf[Polygon]
-      // TODO is it efficient to create this collection? Is this a proper iterator 2 iterator transformation?
-      List(WKTGeometryWithPayload(writer.write(cPoly), cPoly.getUserData.asInstanceOf[Int])).iterator
-    })
-  }
-
-  // TODO fix this method to reverse create RDD
-//  def createSpatialRDDFromLinestringDataSet(geoDataset: Dataset[WKTGeometryWithPayload]): PolygonRDD = {
-//    geoDataset.rdd.mapPartitions(iterator => {
-//      val reader = new WKTReader()
-//      iterator.flatMap(cur => {
-//        // TODO get rid of additional objects e.g. seq
-//        val geometry = Seq(cur.lineString).flatMap(s =>
-//          try {
-//            Some(reader.read(s))
-//          }
-//          catch {
-//            case e: ParseException =>
-//              logger.error("Could not parse")
-//              logger.error(e.getCause)
-//              logger.error(e.getMessage)
-//              None
-//          })
-//        geometry match {
-//          case p: Polygon => {
-//            p.setUserData(cur.payload)
-//            List(p).iterator
-//          }
-//          case _ => throw new NotImplementedError("Multipolygon or others not supported")
-//        }
-//      })
-//    })
-//  }
-
   path = path.replaceFirst("^~", System.getProperty("user.home"))
 
   buildScatterPlot(path + "scatterObject", objectRDD)
@@ -166,12 +117,48 @@ object GeoSpark extends App {
   // TODO figure out why division by zero
   //  buildChoroplethMap(path + "joinVisualization", joinResultCounted, objectRDD)
 
+  // TODO figure out encoder http://stackoverflow.com/questions/36648128/how-to-store-custom-objects-in-a-dataset
+  // decided to manually map to Product data types
+  def writeSerializableWKT(iterator: Iterator[AnyRef]): Iterator[WKTGeometryWithPayload] = {
+    val writer = new WKTWriter()
+    iterator.flatMap(cur => {
+      val cPoly = cur.asInstanceOf[Polygon]
+      // TODO is it efficient to create this collection? Is this a proper iterator 2 iterator transformation?
+      List(WKTGeometryWithPayload(writer.write(cPoly), cPoly.getUserData.asInstanceOf[Int])).iterator
+    })
+  }
+
+  // TODO fix this method to reverse create RDD
+  def createSpatialRDDFromLinestringDataSet(geoDataset: Dataset[WKTGeometryWithPayload]): RDD[Polygon] = {
+    geoDataset.rdd.mapPartitions(iterator => {
+      val reader = new WKTReader()
+      iterator.flatMap(cur => {
+        try {
+          reader.read(cur.lineString) match {
+            case p: Polygon => {
+              val polygon = p.asInstanceOf[Polygon]
+              polygon.setUserData(cur.payload)
+              List(polygon).iterator
+            }
+            case _ => throw new NotImplementedError("Multipolygon or others not supported")
+          }
+        } catch {
+          case e: ParseException =>
+            logger.error("Could not parse")
+            logger.error(e.getCause)
+            logger.error(e.getMessage)
+            None
+        }
+      })
+    })
+  }
+
   /**
-    * Builds the scatter plot.
-    *
-    * @param outputPath the output path
-    * @return true, if successful
-    */
+   * Builds the scatter plot.
+   *
+   * @param outputPath the output path
+   * @return true, if successful
+   */
   // https://github.com/DataSystemsLab/GeoSpark/blob/master/src/main/java/org/datasyslab/babylon/showcase/Example.java
   def buildScatterPlot(outputPath: String, spatialRDD: PolygonRDD): Unit = {
     val envelope = spatialRDD.boundaryEnvelope
@@ -187,11 +174,11 @@ object GeoSpark extends App {
   }
 
   /**
-    * Builds the heat map.
-    *
-    * @param outputPath the output path
-    * @return true, if successful
-    */
+   * Builds the heat map.
+   *
+   * @param outputPath the output path
+   * @return true, if successful
+   */
   def buildHeatMap(outputPath: String, spatialRDD: PolygonRDD): Boolean = {
     try {
       val visualizationOperator = new HeatMap(1000, 600, spatialRDD.boundaryEnvelope, false, 2)
@@ -205,11 +192,11 @@ object GeoSpark extends App {
   }
 
   /**
-    * Builds the choropleth map.
-    *
-    * @param outputPath the output path
-    * @return true, if successful
-    */
+   * Builds the choropleth map.
+   *
+   * @param outputPath the output path
+   * @return true, if successful
+   */
   def buildChoroplethMap(outputPath: String, joinResult: JavaPairRDD[Polygon, java.lang.Long], objectRDD: PolygonRDD): Boolean = {
     try {
       val visualizationOperator = new ChoroplethMap(1000, 600, objectRDD.boundaryEnvelope, false)
@@ -232,12 +219,12 @@ object GeoSpark extends App {
   }
 
   /**
-    * Parallel filter render stitch.
-    *
-    * @param outputPath the output path
-    * @return true
-    *         , if successful
-    */
+   * Parallel filter render stitch.
+   *
+   * @param outputPath the output path
+   * @return true
+   *         , if successful
+   */
   def parallelFilterRenderStitch(outputPath: String, spatialRDD: PolygonRDD): Boolean = {
     try {
       val visualizationOperator = new HeatMap(1000, 600, spatialRDD.boundaryEnvelope, false, 2, 4, 4, true, true)
