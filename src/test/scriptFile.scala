@@ -1,0 +1,1 @@
+babylon.point.properties

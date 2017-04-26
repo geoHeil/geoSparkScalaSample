@@ -6,6 +6,7 @@ It is partially based on https://github.com/DataSystemsLab/GeoSpark/wiki/GeoSpar
 **Overview**
 
 We will load Data from two files (Boxes and Polyons) and perform a geospatial join.
+I will show how to render the images in scala.
 
 **getting started**
 
@@ -16,9 +17,7 @@ sbt run
 sbt test
 ```
 
+To only run the visualizations execute `sbt run` and then `2`
+
 **purpose of this project**
 - show a scala sample of using geoSpark
-- help me to resolve all the TODOS
-
-## TODOs
-- consider https://github.com/jongwook/cuesheet-starter-kit with https://github.com/kakao/cuesheet

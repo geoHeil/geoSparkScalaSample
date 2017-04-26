@@ -23,14 +23,23 @@ scalacOptions ++= Seq(
 // due to the need to launch Spark in local mode.
 javaOptions ++= Seq("-Xms512M", "-Xmx2048M", "-XX:MaxPermSize=2048M", "-XX:+CMSClassUnloadingEnabled")
 parallelExecution in Test := false
-
+fork in run:= true
 lazy val spark = "2.1.0"
 
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % spark % "provided",
   "org.apache.spark" %% "spark-sql" % spark % "provided",
-  "org.apache.spark" %% "spark-hive" % spark % "provided",
-  "org.datasyslab" % "geospark" % "0.5.2",
+  "org.apache.spark" %% "spark-hive" % spark % "provided")
+  .map(_.excludeAll(
+    ExclusionRule(organization = "org.scalacheck"),
+    ExclusionRule(organization = "org.scalactic"),
+    ExclusionRule(organization = "org.scalatest")
+  ))
+
+libraryDependencies ++= Seq(
+  "org.datasyslab" % "geospark" % "0.6.1",
+  "org.datasyslab" % "babylon" % "0.1.1",
+//  "com.typesafe" % "config" % "1.3.1",
   "com.holdenkarau" % "spark-testing-base_2.11" % s"${spark}_0.6.0" % "test"
 )
 

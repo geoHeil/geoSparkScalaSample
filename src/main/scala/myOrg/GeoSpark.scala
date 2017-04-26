@@ -19,7 +19,7 @@ import org.datasyslab.babylon.extension.visualizationEffect.{ ChoroplethMap, Hea
 import org.datasyslab.babylon.utils.ImageType
 import org.datasyslab.geospark.enums.{ FileDataSplitter, GridType, IndexType }
 import org.datasyslab.geospark.spatialOperator.JoinQuery
-import org.datasyslab.geospark.spatialRDD.PolygonRDD
+import org.datasyslab.geospark.spatialRDD.{ PolygonRDD, SpatialRDD }
 import org.json4s.ParserUtil.ParseException
 
 case class WKTGeometryWithPayload(lineString: String, payload: Int)
@@ -79,9 +79,8 @@ object GeoSpark extends App {
   /*
    * Use the partition boundary of objectRDD to repartition the query window RDD, This is mandatory.
    */
-  val joinResult = JoinQuery.SpatialJoinQuery(objectRDD, minimalPolygonCustom, true)
-  //  joinResult.map()
-  val joinResultCounted = JoinQuery.SpatialJoinQueryCountByKey(objectRDD, minimalPolygonCustom, true)
+  val joinResult = JoinQuery.SpatialJoinQuery(objectRDD, minimalPolygonCustom, true, true)
+  val joinResultCounted = JoinQuery.SpatialJoinQueryCountByKey(objectRDD, minimalPolygonCustom, true, true)
 
   /*
    * true means use spatial index.
@@ -103,21 +102,11 @@ object GeoSpark extends App {
   var path = homeDir + File.separator
   path = path.replaceFirst("^~", System.getProperty("user.home"))
 
-  buildScatterPlot(path + "scatterObject", objectRDD)
-  buildScatterPlot(path + "scatterPolygons", minimalPolygonCustom)
+  //  buildScatterPlot(path + "scatterObject", objectRDD)
+  //  buildScatterPlot(path + "scatterPolygons", minimalPolygonCustom)
 
-  //  TODO do not get an useful output / heatmap
-  //  buildHeatMap(path + "heatObject", objectRDD)
-  //  buildHeatMap(path + "heatPolygons", minimalPolygonCustom)
-
-  // TODO figure out why division by zero
-  //  parallelFilterRenderStitch(path + "parallelObject", objectRDD)
-  //  parallelFilterRenderStitch(path + "parallelPolygons", minimalPolygonCustom)
-
-  // TODO figure out why division by zero
-  //  buildChoroplethMap(path + "joinVisualization", joinResultCounted, objectRDD)
-
-  // TODO figure out encoder http://stackoverflow.com/questions/36648128/how-to-store-custom-objects-in-a-dataset
+  //  TODO do not get an useful output for the other image types -> see visualization package
+  // encoder http://stackoverflow.com/questions/36648128/how-to-store-custom-objects-in-a-dataset
   // decided to manually map to Product data types
   def writeSerializableWKT(iterator: Iterator[AnyRef]): Iterator[WKTGeometryWithPayload] = {
     val writer = new WKTWriter()
@@ -128,7 +117,6 @@ object GeoSpark extends App {
     })
   }
 
-  // TODO fix this method to reverse create RDD
   def createSpatialRDDFromLinestringDataSet(geoDataset: Dataset[WKTGeometryWithPayload]): RDD[Polygon] = {
     geoDataset.rdd.mapPartitions(iterator => {
       val reader = new WKTReader()
@@ -153,6 +141,7 @@ object GeoSpark extends App {
     })
   }
 
+  @transient lazy val imageGenerator = new NativeJavaImageGenerator()
   /**
    * Builds the scatter plot.
    *
@@ -160,82 +149,14 @@ object GeoSpark extends App {
    * @return true, if successful
    */
   // https://github.com/DataSystemsLab/GeoSpark/blob/master/src/main/java/org/datasyslab/babylon/showcase/Example.java
-  def buildScatterPlot(outputPath: String, spatialRDD: PolygonRDD): Unit = {
+  def buildScatterPlot(outputPath: String, spatialRDD: SpatialRDD): Boolean = {
     val envelope = spatialRDD.boundaryEnvelope
-    try {
-      val visualizationOperator = new ScatterPlot(1000, 600, envelope, false)
-      visualizationOperator.CustomizeColor(255, 255, 255, 255, Color.GREEN, true)
-      visualizationOperator.Visualize(spark.sparkContext, spatialRDD)
-      val imageGenerator = new NativeJavaImageGenerator()
-      imageGenerator.SaveAsFile(visualizationOperator.pixelImage, outputPath, ImageType.PNG)
-    } catch {
-      case e: Exception => e.printStackTrace()
-    }
-  }
-
-  /**
-   * Builds the heat map.
-   *
-   * @param outputPath the output path
-   * @return true, if successful
-   */
-  def buildHeatMap(outputPath: String, spatialRDD: PolygonRDD): Boolean = {
-    try {
-      val visualizationOperator = new HeatMap(1000, 600, spatialRDD.boundaryEnvelope, false, 2)
-      visualizationOperator.Visualize(spark.sparkContext, spatialRDD)
-      val imageGenerator = new NativeJavaImageGenerator()
-      imageGenerator.SaveAsFile(visualizationOperator.pixelImage, outputPath, ImageType.GIF)
-    } catch {
-      case e: Exception => e.printStackTrace()
-    }
-    true
-  }
-
-  /**
-   * Builds the choropleth map.
-   *
-   * @param outputPath the output path
-   * @return true, if successful
-   */
-  def buildChoroplethMap(outputPath: String, joinResult: JavaPairRDD[Polygon, java.lang.Long], objectRDD: PolygonRDD): Boolean = {
-    try {
-      val visualizationOperator = new ChoroplethMap(1000, 600, objectRDD.boundaryEnvelope, false)
-      visualizationOperator.CustomizeColor(255, 255, 255, 255, Color.RED, true)
-      visualizationOperator.Visualize(spark.sparkContext, joinResult)
-
-      val frontImage = new ScatterPlot(1000, 600, objectRDD.boundaryEnvelope, false)
-      frontImage.CustomizeColor(0, 0, 0, 255, Color.GREEN, true)
-      frontImage.Visualize(spark.sparkContext, objectRDD) // TODO check if left vs. right boject vs query is not mixed up
-
-      val overlayOperator = new OverlayOperator(visualizationOperator.pixelImage)
-      overlayOperator.JoinImage(frontImage.pixelImage)
-
-      val imageGenerator = new NativeJavaImageGenerator()
-      imageGenerator.SaveAsFile(overlayOperator.backImage, outputPath, ImageType.PNG)
-    } catch {
-      case e: Exception => e.printStackTrace()
-    }
-    true
-  }
-
-  /**
-   * Parallel filter render stitch.
-   *
-   * @param outputPath the output path
-   * @return true
-   *         , if successful
-   */
-  def parallelFilterRenderStitch(outputPath: String, spatialRDD: PolygonRDD): Boolean = {
-    try {
-      val visualizationOperator = new HeatMap(1000, 600, spatialRDD.boundaryEnvelope, false, 2, 4, 4, true, true)
-      visualizationOperator.Visualize(spark.sparkContext, spatialRDD)
-      visualizationOperator.stitchImagePartitions()
-      val imageGenerator = new NativeJavaImageGenerator()
-      imageGenerator.SaveAsFile(visualizationOperator.pixelImage, outputPath, ImageType.GIF)
-    } catch {
-      case e: Exception => e.printStackTrace()
-    }
-    true
+    val s = spatialRDD.getRawSpatialRDD.rdd.sparkContext
+    val visualizationOperator = new ScatterPlot(1000, 600, envelope, false, -1, -1, false, true)
+    visualizationOperator.CustomizeColor(255, 255, 255, 255, Color.GREEN, true)
+    visualizationOperator.Visualize(s, spatialRDD)
+    import org.datasyslab.babylon.utils.ImageType
+    imageGenerator.SaveAsFile(visualizationOperator.vectorImage, outputPath, ImageType.SVG)
   }
 
   spark.stop
