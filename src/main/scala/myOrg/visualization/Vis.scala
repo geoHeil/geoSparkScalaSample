@@ -39,6 +39,7 @@ object Vis {
     vLocalRaster.Visualize(s, spatialRDD)
     localImageGenerator.SaveAsFile(vLocalRaster.rasterImage, outputPath + "localRaster", ImageType.PNG)
 
+    // TODO try using native 
     // TODO fix compile error of:
     /**
      * overloaded method value SaveAsFile with alternatives:
