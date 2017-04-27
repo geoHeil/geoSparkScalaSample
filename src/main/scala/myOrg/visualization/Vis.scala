@@ -39,7 +39,7 @@ object Vis {
     vLocalRaster.Visualize(s, spatialRDD)
     localImageGenerator.SaveAsFile(vLocalRaster.rasterImage, outputPath + "localRaster", ImageType.PNG)
 
-    // TODO try using native 
+    // TODO try using native generator for local (image viewer) readability of distributed images as well https://github.com/DataSystemsLab/GeoSpark/issues/80
     // TODO fix compile error of:
     /**
      * overloaded method value SaveAsFile with alternatives:
@@ -67,9 +67,9 @@ object Vis {
    * @param outputPath the output path
    * @return true, if successful
    */
-  def buildHeatMap(outputPath: String, spatialRDD: SpatialRDD): Boolean = {
+  def buildHeatMap(outputPath: String, spatialRDD: SpatialRDD, envelope: Envelope): Boolean = {
     val s = spatialRDD.getRawSpatialRDD.rdd.sparkContext
-    val visualizationOperator = new HeatMap(7000, 4900, spatialRDD.boundaryEnvelope, false, 2, -1, -1, false, false)
+    val visualizationOperator = new HeatMap(7000, 4900, envelope, false, 2, -1, -1, false, false)
     visualizationOperator.Visualize(s, spatialRDD)
     import org.datasyslab.babylon.utils.ImageType
     localImageGenerator.SaveAsFile(visualizationOperator.rasterImage, outputPath, ImageType.PNG)
@@ -81,13 +81,13 @@ object Vis {
    * @param outputPath the output path
    * @return true, if successful
    */
-  def buildChoroplethMap(outputPath: String, joinResult: JavaPairRDD[Polygon, java.lang.Long], objectRDD: PolygonRDD): Boolean = {
+  def buildChoroplethMap(outputPath: String, joinResult: JavaPairRDD[Polygon, java.lang.Long], objectRDD: PolygonRDD, envelope: Envelope): Boolean = {
     val s = joinResult.rdd.sparkContext
-    val visualizationOperator = new ChoroplethMap(1000, 600, objectRDD.boundaryEnvelope, false, -1, -1, false, true)
+    val visualizationOperator = new ChoroplethMap(1000, 600, envelope, false, -1, -1, false, true)
     visualizationOperator.CustomizeColor(255, 255, 255, 255, Color.RED, true)
     visualizationOperator.Visualize(s, joinResult)
 
-    val frontImage = new ScatterPlot(1000, 600, objectRDD.boundaryEnvelope, false, -1, -1, false, true)
+    val frontImage = new ScatterPlot(1000, 600, envelope, false, -1, -1, false, true)
     frontImage.CustomizeColor(0, 0, 0, 255, Color.GREEN, true)
     frontImage.Visualize(s, objectRDD) // TODO check if left vs. right object vs query is not mixed up
 
@@ -103,9 +103,9 @@ object Vis {
    * @param outputPath the output path
    * @return true, if successful
    */
-  def parallelFilterRenderNoStitch(outputPath: String, spatialRDD: SpatialRDD): Boolean = {
+  def parallelFilterRenderNoStitch(outputPath: String, spatialRDD: SpatialRDD, envelope: Envelope): Boolean = {
     val s = spatialRDD.getRawSpatialRDD.rdd.sparkContext
-    val visualizationOperator = new HeatMap(7000, 4900, spatialRDD.boundaryEnvelope, false, 2, -1, -1, false, false)
+    val visualizationOperator = new HeatMap(7000, 4900, envelope, false, 2, -1, -1, false, false)
     visualizationOperator.Visualize(s, spatialRDD)
     localImageGenerator.SaveAsFile(visualizationOperator.rasterImage, outputPath, ImageType.PNG)
   }
@@ -116,9 +116,9 @@ object Vis {
    * @param outputPath the output path
    * @return true, if successful
    */
-  def parallelFilterRenderStitch(outputPath: String, spatialRDD: SpatialRDD): Boolean = {
+  def parallelFilterRenderStitch(outputPath: String, spatialRDD: SpatialRDD, envelope: Envelope): Boolean = {
     val s = spatialRDD.getRawSpatialRDD.rdd.sparkContext
-    val visualizationOperator = new HeatMap(7000, 4900, spatialRDD.boundaryEnvelope, false, 2, 4, 4, false, false)
+    val visualizationOperator = new HeatMap(7000, 4900, envelope, false, 2, 4, 4, false, false)
     visualizationOperator.Visualize(s, spatialRDD)
     visualizationOperator.stitchImagePartitions
     localImageGenerator.SaveAsFile(visualizationOperator.rasterImage, outputPath, ImageType.PNG)

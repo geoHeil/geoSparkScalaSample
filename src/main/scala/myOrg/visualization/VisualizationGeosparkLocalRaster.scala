@@ -9,7 +9,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.storage.StorageLevel
 import org.datasyslab.geospark.enums.FileDataSplitter
-import org.datasyslab.geospark.spatialRDD.PolygonRDD
+import org.datasyslab.geospark.spatialRDD.{ PolygonRDD, RectangleRDD }
 
 object VisualizationGeosparkLocalRaster extends App {
 
@@ -43,27 +43,27 @@ object VisualizationGeosparkLocalRaster extends App {
   val PointOffset = prop.getProperty("offset").toInt
   val PointSplitter = FileDataSplitter.getFileDataSplitter(prop.getProperty("splitter"))
   val PointNumPartitions = prop.getProperty("numPartitions").toInt
-  val RectangleInputLocation = "file://" + System.getProperty("user.dir") + "/" + resourcePath + prop.getProperty("inputLocation")
+  val RectangleInputLocation = resourcePath + prop.getProperty("inputLocation")
 
   confFile = new FileInputStream(resourcePath + "babylon.rectangle.properties")
   prop.load(confFile)
   val RectangleOffset = prop.getProperty("offset").toInt
   val RectangleSplitter = FileDataSplitter.getFileDataSplitter(prop.getProperty("splitter"))
   val RectangleNumPartitions = prop.getProperty("numPartitions").toInt
-  val PolygonInputLocation = "file://" + System.getProperty("user.dir") + "/" + resourcePath + prop.getProperty("inputLocation")
 
   confFile = new FileInputStream(resourcePath + "babylon.polygon.properties")
   prop.load(confFile)
   val PolygonOffset = prop.getProperty("offset").toInt
   val PolygonSplitter = FileDataSplitter.getFileDataSplitter(prop.getProperty("splitter"))
   val PolygonNumPartitions = prop.getProperty("numPartitions").toInt
-  val LineStringInputLocation = "file://" + System.getProperty("user.dir") + "/" + resourcePath + prop.getProperty("inputLocation")
+  val PolygonInputLocation = resourcePath + prop.getProperty("inputLocation")
 
   confFile = new FileInputStream(resourcePath + "babylon.linestring.properties")
   prop.load(confFile)
   val LineStringOffset = prop.getProperty("offset").toInt
   val LineStringSplitter = FileDataSplitter.getFileDataSplitter(prop.getProperty("splitter"))
   val LineStringNumPartitions = prop.getProperty("numPartitions").toInt
+  val LineStringInputLocation = resourcePath + prop.getProperty("inputLocation")
   val USMainLandBoundary = new Envelope(-126.790180, -64.630926, 24.863836, 50.000)
   // ############### basic setup complete #############
   // plot in various variants
@@ -72,7 +72,9 @@ object VisualizationGeosparkLocalRaster extends App {
   Vis.buildScatterPlot(scatterPlotOutputPath, spatialRDD, USMainLandBoundary)
 
   //  TODO build these in all 4 variants as well
-  //  buildHeatMap(heatMapOutputPath)
+  val rectangleRDD = new RectangleRDD(spark.sparkContext, RectangleInputLocation, RectangleSplitter, false, RectangleNumPartitions, StorageLevel.MEMORY_ONLY)
+  Vis.buildHeatMap(heatMapOutputPath, spatialRDD, USMainLandBoundary) // java.lang.ArrayIndexOutOfBoundsException: 2
+
   //  buildChoroplethMap(choroplethMapOutputPath)
   //  parallelFilterRenderStitch(parallelFilterRenderStitchOutputPath + "-stitched")
   //  parallelFilterRenderNoStitch(parallelFilterRenderStitchOutputPath)
