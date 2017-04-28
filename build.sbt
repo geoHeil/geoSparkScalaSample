@@ -37,8 +37,8 @@ libraryDependencies ++= Seq(
   ))
 
 libraryDependencies ++= Seq(
-  "org.datasyslab" % "geospark" % "0.6.1",
-  "org.datasyslab" % "babylon" % "0.1.1",
+  "org.datasyslab" % "geospark" % "0.6.2-snapshot",
+  "org.datasyslab" % "babylon" % "0.1.2-snapshot",
 //  "com.typesafe" % "config" % "1.3.1",
   "com.holdenkarau" % "spark-testing-base_2.11" % s"${spark}_0.6.0" % "test"
 )

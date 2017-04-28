@@ -6,7 +6,7 @@ import java.awt.Color
 import com.vividsolutions.jts.geom.{ Envelope, Polygon }
 import org.apache.spark.api.java.JavaPairRDD
 import org.datasyslab.babylon.core.OverlayOperator
-import org.datasyslab.babylon.extension.imageGenerator.{ NativeJavaImageGenerator, SparkImageGenerator }
+import org.datasyslab.babylon.extension.imageGenerator.{ BabylonImageGenerator, NativeJavaImageGenerator, SparkImageGenerator }
 import org.datasyslab.babylon.extension.visualizationEffect.{ ChoroplethMap, HeatMap, ScatterPlot }
 import org.datasyslab.babylon.utils.ImageType
 import org.datasyslab.geospark.spatialRDD.{ PolygonRDD, SpatialRDD }
@@ -15,8 +15,7 @@ import org.datasyslab.geospark.spatialRDD.{ PolygonRDD, SpatialRDD }
  * Visualization utility functions
  */
 object Vis {
-  @transient private lazy val localImageGenerator = new NativeJavaImageGenerator()
-  @transient private lazy val sparkImageGenerator = new SparkImageGenerator()
+  @transient private lazy val imageGenerator = new BabylonImageGenerator()
 
   /**
    * Builds the scatter plot of a geometry. Based on
@@ -29,36 +28,27 @@ object Vis {
     //    val envelope = spatialRDD.boundaryEnvelope
     val s = spatialRDD.getRawSpatialRDD.rdd.sparkContext
     import org.datasyslab.babylon.utils.ImageType
-    val vLocalVector = new ScatterPlot(1000, 600, envelope, false, -1, -1, false, true)
-    vLocalVector.CustomizeColor(255, 255, 255, 255, Color.GREEN, true)
-    vLocalVector.Visualize(s, spatialRDD)
-    localImageGenerator.SaveAsFile(vLocalVector.vectorImage, outputPath + "localVector", ImageType.SVG)
+    //    val vLocalVector = new ScatterPlot(1000, 600, envelope, false, -1, -1, false, true)
+    //    vLocalVector.CustomizeColor(255, 255, 255, 255, Color.GREEN, true)
+    //    vLocalVector.Visualize(s, spatialRDD)
+    //    imageGenerator.SaveVectorImageAsLocalFile(vLocalVector.vectorImage, outputPath + "localVector", ImageType.SVG)
 
     val vLocalRaster = new ScatterPlot(1000, 600, envelope, false, -1, -1, false, false)
     vLocalRaster.CustomizeColor(255, 255, 255, 255, Color.GREEN, true)
     vLocalRaster.Visualize(s, spatialRDD)
-    localImageGenerator.SaveAsFile(vLocalRaster.rasterImage, outputPath + "localRaster", ImageType.PNG)
+    imageGenerator.SaveRasterImageAsLocalFile(vLocalRaster.rasterImage, outputPath + "localRaster", ImageType.PNG)
 
-    // TODO try using native generator for local (image viewer) readability of distributed images as well https://github.com/DataSystemsLab/GeoSpark/issues/80
-    // TODO fix compile error of:
-    /**
-     * overloaded method value SaveAsFile with alternatives:
-     * [error]   (x$1: java.util.List[String],x$2: String,x$3: org.datasyslab.babylon.utils.ImageType)Boolean <and>
-     * [error]   (x$1: java.awt.image.BufferedImage,x$2: String,x$3: org.datasyslab.babylon.utils.ImageType)Boolean <and>
-     * [error]   (x$1: org.apache.spark.api.java.JavaPairRDD,x$2: String,x$3: org.datasyslab.babylon.utils.ImageType)Boolean
-     * [error]  cannot be applied to (org.apache.spark.api.java.JavaPairRDD[Integer,String], String, org.datasyslab.babylon.utils.ImageType)
-     * [error]     sparkImageGenerator.SaveAsFile(vDistributedVector.distributedVectorImage, outputPath + "distributedVector", ImageType.SVG)
-     *
-     */
     //    val vDistributedVector = new ScatterPlot(1000, 600, envelope, false, 2, 2, true, true)
     //    vDistributedVector.CustomizeColor(255, 255, 255, 255, Color.GREEN, true)
     //    vDistributedVector.Visualize(s, spatialRDD)
-    //    sparkImageGenerator.SaveAsFile(vDistributedVector.distributedVectorImage, outputPath + "distributedVector", ImageType.SVG)
-    //
-    //    val vDistributedRaster = new ScatterPlot(1000, 600, envelope, false, 2, 2, true, false)
-    //    vDistributedRaster.CustomizeColor(255, 255, 255, 255, Color.GREEN, true)
-    //    vDistributedRaster.Visualize(s, spatialRDD)
-    //    sparkImageGenerator.SaveAsFile(vDistributedRaster.distributedRasterImage, outputPath + "distributedRaster", ImageType.PNG)
+    //    imageGenerator.SaveVectormageAsLocalFile(vDistributedVector.distributedVectorImage, outputPath + "distributedVector", ImageType.SVG)
+    //    imageGenerator.SaveVectorImageAsSparkFile(vDistributedVector.distributedVectorImage, outputPath + "distributedVectorSpark", ImageType.SVG)
+
+    val vDistributedRaster = new ScatterPlot(1000, 600, envelope, false, 2, 2, true, false)
+    vDistributedRaster.CustomizeColor(255, 255, 255, 255, Color.GREEN, true)
+    vDistributedRaster.Visualize(s, spatialRDD)
+    imageGenerator.SaveRasterImageAsLocalFile(vDistributedRaster.distributedRasterImage, outputPath + "distributedRaster", ImageType.PNG)
+    //    imageGenerator.SaveRasterImageAsSparkFile(vDistributedRaster.distributedRasterImage, outputPath + "distributedRaster", ImageType.PNG)
   }
 
   /**
@@ -72,7 +62,7 @@ object Vis {
     val visualizationOperator = new HeatMap(7000, 4900, envelope, false, 2, -1, -1, false, false)
     visualizationOperator.Visualize(s, spatialRDD)
     import org.datasyslab.babylon.utils.ImageType
-    localImageGenerator.SaveAsFile(visualizationOperator.rasterImage, outputPath, ImageType.PNG)
+    imageGenerator.SaveRasterImageAsLocalFile(visualizationOperator.rasterImage, outputPath, ImageType.PNG)
   }
 
   /**
@@ -94,7 +84,7 @@ object Vis {
     val overlayOperator = new OverlayOperator(visualizationOperator.vectorImage, true)
     overlayOperator.JoinImage(frontImage.vectorImage)
     import org.datasyslab.babylon.utils.ImageType
-    localImageGenerator.SaveAsFile(overlayOperator.backVectorImage, outputPath, ImageType.SVG)
+    imageGenerator.SaveVectorImageAsLocalFile(overlayOperator.backVectorImage, outputPath, ImageType.SVG)
   }
 
   /**
@@ -107,7 +97,7 @@ object Vis {
     val s = spatialRDD.getRawSpatialRDD.rdd.sparkContext
     val visualizationOperator = new HeatMap(7000, 4900, envelope, false, 2, -1, -1, false, false)
     visualizationOperator.Visualize(s, spatialRDD)
-    localImageGenerator.SaveAsFile(visualizationOperator.rasterImage, outputPath, ImageType.PNG)
+    imageGenerator.SaveRasterImageAsLocalFile(visualizationOperator.rasterImage, outputPath, ImageType.PNG)
   }
 
   /**
@@ -121,6 +111,6 @@ object Vis {
     val visualizationOperator = new HeatMap(7000, 4900, envelope, false, 2, 4, 4, false, false)
     visualizationOperator.Visualize(s, spatialRDD)
     visualizationOperator.stitchImagePartitions
-    localImageGenerator.SaveAsFile(visualizationOperator.rasterImage, outputPath, ImageType.PNG)
+    imageGenerator.SaveRasterImageAsLocalFile(visualizationOperator.rasterImage, outputPath, ImageType.PNG)
   }
 }

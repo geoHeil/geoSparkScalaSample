@@ -1,15 +1,20 @@
 // Copyright (C) 2017 Georg Heiler
 package myOrg.visualization
 
-import java.io.{ File, FileInputStream }
+import java.io.{File, FileInputStream}
 import java.util.Properties
 
 import com.vividsolutions.jts.geom.Envelope
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.storage.StorageLevel
+import org.datasyslab.babylon.extension.visualizationEffect.ScatterPlot
 import org.datasyslab.geospark.enums.FileDataSplitter
-import org.datasyslab.geospark.spatialRDD.{ PolygonRDD, RectangleRDD }
+import org.datasyslab.geospark.spatialRDD.{PolygonRDD, RectangleRDD}
+import java.awt.Color
+
+import org.datasyslab.babylon.extension.imageGenerator.BabylonImageGenerator
+import org.datasyslab.babylon.utils.ImageType
 
 object VisualizationGeosparkLocalRaster extends App {
 
@@ -21,6 +26,7 @@ object VisualizationGeosparkLocalRaster extends App {
     .set("spark.default.parallelism", "12")
     .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
     .set("spark.speculation", "true")
+  //    .set("spark.network.timeout", "100000s")
 
   val spark = SparkSession
     .builder()
@@ -70,6 +76,23 @@ object VisualizationGeosparkLocalRaster extends App {
 
   val spatialRDD = new PolygonRDD(spark.sparkContext, PolygonInputLocation, PolygonSplitter, false, PolygonNumPartitions, StorageLevel.MEMORY_ONLY)
   Vis.buildScatterPlot(scatterPlotOutputPath, spatialRDD, USMainLandBoundary)
+
+  // this throws a null pointer of
+  /**
+    *java.lang.IllegalArgumentException: image == null!
+  at javax.imageio.ImageTypeSpecifier.createFromRenderedImage(ImageTypeSpecifier.java:925)
+  at javax.imageio.ImageIO.getWriter(ImageIO.java:1592)
+  at javax.imageio.ImageIO.write(ImageIO.java:1520)
+  at org.datasyslab.babylon.extension.imageGenerator.BabylonImageGenerator.SaveRasterImageAsLocalFile(BabylonImageGenerator.java:35)
+  at org.datasyslab.babylon.core.AbstractImageGenerator.SaveRasterImageAsLocalFile(AbstractImageGenerator.java:59)
+  ... 42 elided
+
+    */
+  val vDistributedRaster = new ScatterPlot(1000, 600, USMainLandBoundary, false, 2, 2, true, false)
+  vDistributedRaster.CustomizeColor(255, 255, 255, 255, Color.GREEN, true)
+  vDistributedRaster.Visualize(spark.sparkContext, spatialRDD)
+  val imageGenerator = new BabylonImageGenerator()
+  imageGenerator.SaveRasterImageAsLocalFile(vDistributedRaster.distributedRasterImage, scatterPlotOutputPath + "distributedRaster", ImageType.PNG)
 
   //  TODO build these in all 4 variants as well
   val rectangleRDD = new RectangleRDD(spark.sparkContext, RectangleInputLocation, RectangleSplitter, false, RectangleNumPartitions, StorageLevel.MEMORY_ONLY)
