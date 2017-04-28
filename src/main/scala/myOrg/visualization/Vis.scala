@@ -59,7 +59,7 @@ object Vis {
    */
   def buildHeatMap(outputPath: String, spatialRDD: SpatialRDD, envelope: Envelope): Boolean = {
     val s = spatialRDD.getRawSpatialRDD.rdd.sparkContext
-    val visualizationOperator = new HeatMap(7000, 4900, envelope, false, 2, -1, -1, false, false)
+    val visualizationOperator = new HeatMap(7000, 4900, envelope, false, 1, -1, -1, false, false)
     visualizationOperator.Visualize(s, spatialRDD)
     import org.datasyslab.babylon.utils.ImageType
     imageGenerator.SaveRasterImageAsLocalFile(visualizationOperator.rasterImage, outputPath, ImageType.PNG)

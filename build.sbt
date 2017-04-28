@@ -55,19 +55,21 @@ test in assembly := {}
 
 initialCommands in console :=
   """
-    |import java.awt.Color
-    |import java.io.File
+    |
+    |import java.io.{File, FileInputStream}
+    |import java.util.Properties
     |
     |import com.vividsolutions.jts.geom.Envelope
     |import org.apache.spark.SparkConf
     |import org.apache.spark.sql.SparkSession
     |import org.apache.spark.storage.StorageLevel
-    |import org.datasyslab.babylon.extension.imageGenerator.NativeJavaImageGenerator
-    |import org.datasyslab.babylon.extension.visualizationEffect.ScatterPlot
+    |import org.datasyslab.babylon.extension.visualizationEffect.{HeatMap, ScatterPlot}
+    |import org.datasyslab.geospark.enums.FileDataSplitter
+    |import org.datasyslab.geospark.spatialRDD.{PolygonRDD, RectangleRDD}
+    |import java.awt.Color
+    |
+    |import org.datasyslab.babylon.extension.imageGenerator.BabylonImageGenerator
     |import org.datasyslab.babylon.utils.ImageType
-    |import org.datasyslab.geospark.enums.{ FileDataSplitter, GridType, IndexType }
-    |import org.datasyslab.geospark.spatialOperator.JoinQuery
-    |import org.datasyslab.geospark.spatialRDD.PolygonRDD
     |
     |val conf: SparkConf = new SparkConf()
     |    .setAppName("geoSparkMemory")
@@ -77,7 +79,6 @@ initialCommands in console :=
     |  val spark: SparkSession = SparkSession
     |    .builder()
     |    .config(conf)
-    |    //      .enableHiveSupport()
     |    .getOrCreate()
   """.stripMargin
 
