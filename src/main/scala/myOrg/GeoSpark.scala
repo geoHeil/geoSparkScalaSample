@@ -13,8 +13,6 @@ import org.apache.spark.api.java.JavaPairRDD
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{ Dataset, SparkSession }
 import org.apache.spark.storage.StorageLevel
-import org.datasyslab.babylon.core.OverlayOperator
-import org.datasyslab.babylon.extension.imageGenerator.NativeJavaImageGenerator
 import org.datasyslab.babylon.extension.visualizationEffect.{ ChoroplethMap, HeatMap, ScatterPlot }
 import org.datasyslab.babylon.utils.ImageType
 import org.datasyslab.geospark.enums.{ FileDataSplitter, GridType, IndexType }
@@ -140,24 +138,5 @@ object GeoSpark extends App {
       })
     })
   }
-
-  @transient lazy val imageGenerator = new NativeJavaImageGenerator()
-  /**
-   * Builds the scatter plot.
-   *
-   * @param outputPath the output path
-   * @return true, if successful
-   */
-  // https://github.com/DataSystemsLab/GeoSpark/blob/master/src/main/java/org/datasyslab/babylon/showcase/Example.java
-  def buildScatterPlot(outputPath: String, spatialRDD: SpatialRDD): Boolean = {
-    val envelope = spatialRDD.boundaryEnvelope
-    val s = spatialRDD.getRawSpatialRDD.rdd.sparkContext
-    val visualizationOperator = new ScatterPlot(1000, 600, envelope, false, -1, -1, false, true)
-    visualizationOperator.CustomizeColor(255, 255, 255, 255, Color.GREEN, true)
-    visualizationOperator.Visualize(s, spatialRDD)
-    import org.datasyslab.babylon.utils.ImageType
-    imageGenerator.SaveAsFile(visualizationOperator.vectorImage, outputPath, ImageType.SVG)
-  }
-
   spark.stop
 }

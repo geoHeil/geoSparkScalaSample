@@ -5,8 +5,8 @@ import java.awt.Color
 
 import com.vividsolutions.jts.geom.{ Envelope, Polygon }
 import org.apache.spark.api.java.JavaPairRDD
-import org.datasyslab.babylon.core.OverlayOperator
-import org.datasyslab.babylon.extension.imageGenerator.{ BabylonImageGenerator, NativeJavaImageGenerator, SparkImageGenerator }
+import org.datasyslab.babylon.core.RasterOverlayOperator
+import org.datasyslab.babylon.extension.imageGenerator.BabylonImageGenerator
 import org.datasyslab.babylon.extension.visualizationEffect.{ ChoroplethMap, HeatMap, ScatterPlot }
 import org.datasyslab.babylon.utils.ImageType
 import org.datasyslab.geospark.spatialRDD.{ PolygonRDD, SpatialRDD }
@@ -59,10 +59,13 @@ object Vis {
    */
   def buildHeatMap(outputPath: String, spatialRDD: SpatialRDD, envelope: Envelope): Boolean = {
     val s = spatialRDD.getRawSpatialRDD.rdd.sparkContext
-    val visualizationOperator = new HeatMap(7000, 4900, envelope, false, 1, -1, -1, false, false)
+    // TODO strange overhead for distributed image rendering. No task scheduled for 2min before something happens.
+    //    val visualizationOperator = new HeatMap(7000, 4900, envelope, false, 1, 2, 2, true, true)
+    val visualizationOperator = new HeatMap(7000, 4900, envelope, false, 2)
     visualizationOperator.Visualize(s, spatialRDD)
-    import org.datasyslab.babylon.utils.ImageType
+    //    val imageGenerator = new BabylonImageGenerator
     imageGenerator.SaveRasterImageAsLocalFile(visualizationOperator.rasterImage, outputPath, ImageType.PNG)
+    //    imageGenerator.SaveRasterImageAsLocalFile(visualizationOperator.distributedRasterImage, outputPath, ImageType.PNG)
   }
 
   /**
@@ -73,18 +76,18 @@ object Vis {
    */
   def buildChoroplethMap(outputPath: String, joinResult: JavaPairRDD[Polygon, java.lang.Long], objectRDD: PolygonRDD, envelope: Envelope): Boolean = {
     val s = joinResult.rdd.sparkContext
-    val visualizationOperator = new ChoroplethMap(1000, 600, envelope, false, -1, -1, false, true)
+    val visualizationOperator = new ChoroplethMap(7000, 4900, envelope, false, -1, -1, true, false)
     visualizationOperator.CustomizeColor(255, 255, 255, 255, Color.RED, true)
     visualizationOperator.Visualize(s, joinResult)
 
-    val frontImage = new ScatterPlot(1000, 600, envelope, false, -1, -1, false, true)
+    val frontImage = new ScatterPlot(7000, 4900, envelope, false, -1, -1, true, false)
     frontImage.CustomizeColor(0, 0, 0, 255, Color.GREEN, true)
     frontImage.Visualize(s, objectRDD) // TODO check if left vs. right object vs query is not mixed up
 
-    val overlayOperator = new OverlayOperator(visualizationOperator.vectorImage, true)
-    overlayOperator.JoinImage(frontImage.vectorImage)
+    val overlayOperator = new RasterOverlayOperator(visualizationOperator.distributedRasterImage)
+    overlayOperator.JoinImage(frontImage.distributedRasterImage)
     import org.datasyslab.babylon.utils.ImageType
-    imageGenerator.SaveVectorImageAsLocalFile(overlayOperator.backVectorImage, outputPath, ImageType.SVG)
+    imageGenerator.SaveRasterImageAsLocalFile(overlayOperator.distributedBackRasterImage, outputPath, ImageType.PNG)
   }
 
   /**
