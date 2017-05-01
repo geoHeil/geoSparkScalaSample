@@ -166,7 +166,7 @@ object ScalaExample extends App {
 
   def parallelFilterRenderBothStitch(outputPath: String): Boolean = {
     val spatialRDD = new RectangleRDD(sparkContext, RectangleInputLocation, RectangleSplitter, false, RectangleNumPartitions, StorageLevel.MEMORY_ONLY)
-    val visualizationOperator = new HeatMap(1000, 600, USMainLandBoundary, false, 2, 4, 4, true, true)
+    val visualizationOperator = new HeatMap(2000, 1200, USMainLandBoundary, false, 2, 4, 4, true, true)
     visualizationOperator.Visualize(sparkContext, spatialRDD)
     val imageGenerator = new BabylonImageGenerator
     imageGenerator.SaveRasterImageAsLocalFile(visualizationOperator.distributedRasterImage, outputPath, ImageType.PNG)
